@@ -1,0 +1,45 @@
+trigger:
+  branches:
+    include:
+      - main  # Adjust to your default branch
+
+pool:
+  name: 'MyAgents'  # Name of your self-hosted agent pool
+
+variables:
+  azureSubscription: 'Az-DevSecOps-Deployments'  # Name of your Azure subscription
+  appName: 'myfastapiap'  # Name of your Azure App Service
+  resourceGroup: 'fastapi-rg'  # Your resource group name
+  packagePath: '$(System.DefaultWorkingDirectory)/app.zip'  # Path to the zip package
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.x'
+    addToPath: true
+
+- script: |
+    echo "Setting up Python environment..."
+    python -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+  displayName: 'Install Dependencies'
+
+# - script: |
+#     echo "Running Tests..."
+#     source venv/bin/activate
+#     pytest tests  # Adjust based on your test framework
+#   displayName: 'Run Tests'
+
+- script: |
+    echo "Packaging Application..."
+    zip -r app.zip .  # Zip the entire application
+  displayName: 'Package Application'
+
+- task: AzureWebApp@1
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    appType: 'webAppLinux'
+    appName: '$(appName)'
+    package: '$(packagePath)'  # Path to the zipped application
+  displayName: 'Deploy to Azure App Service'
